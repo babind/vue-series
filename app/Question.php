@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Question extends Model
 {
+     use VotableTrait;
+    use FavorableTrait;
+
     protected $fillable = ['title', 'body'];
     
     public function user() {
@@ -41,7 +44,7 @@ class Question extends Model
 
     public function getBodyHtmlAttribute()
     {
-        return \Parsedown::instance()->text($this->body);
+        return clean($this->bodyHtml());
     }
 
     public function answers()
@@ -55,39 +58,22 @@ class Question extends Model
         $this->save();
     }
 
-    public function favorites()
+    public function getExcerptAttribute()
     {
-        return $this->belongsToMany(User::class, 'favorites')->withTimestamps(); 
+        return $this->excerpt(250);
     }
     
-    public function isFavorited()
+    public function excerpt($length)
     {
-        return $this->favorites()->where('user_id', auth()->id())->count() > 0;
-    }
-     
-    public function getIsFavoritedAttribute()
-    {
-        return $this->isFavorited();
+        return str_limit(strip_tags($this->bodyHtml()), $length);
     }
     
-    public function getFavoritesCountAttribute()
+    private function bodyHtml()
     {
-        return $this->favorites->count();
+        return \Parsedown::instance()->text($this->body);
     }
 
-    public function votes()
-    {
-        return $this->morphToMany(User::class, 'votable');
-    }
-     
-    public function upVotes()
-    {
-        return $this->votes()->wherePivot('vote', 1);
-    }
     
-    public function downVotes()
-    {
-        return $this->votes()->wherePivot('vote', -1);
-    }
+
 }    
 
